@@ -125,7 +125,7 @@ public class ThingTunnelBuilder {
 
         requireNonNull(secret, "secret is required");
         requireNonNull(remote, "remote is required");
-        check(providers.isEmpty(), "provider is required");
+        check(!providers.isEmpty(), "provider is required");
 
         final var config = new TunnelConfig();
         setupAccess(config, thing);
