@@ -2,7 +2,6 @@ module athing.tunnel.thing {
 
     exports io.github.athingx.athing.tunnel.thing;
     exports io.github.athingx.athing.tunnel.thing.builder;
-    exports io.github.athingx.athing.tunnel.thing.builder.provider;
 
     opens io.github.athingx.athing.tunnel.thing.impl.domain to com.google.gson, athing.common;
     opens io.github.athingx.athing.tunnel.thing.impl.core.protocol to com.google.gson;

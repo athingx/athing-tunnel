@@ -3,7 +3,7 @@ package io.github.athingx.athing.tunnel.thing.builder;
 import io.github.athingx.athing.thing.api.Thing;
 import io.github.athingx.athing.tunnel.thing.ThingTunnel;
 import io.github.athingx.athing.tunnel.thing.impl.ThingTunnelImpl;
-import io.github.athingx.athing.tunnel.thing.impl.binding.BindingForSwitch;
+import io.github.athingx.athing.tunnel.thing.impl.binding.BindingForDebug;
 import io.github.athingx.athing.tunnel.thing.impl.core.Tunnel;
 import io.github.athingx.athing.tunnel.thing.impl.core.TunnelConfig;
 
@@ -13,6 +13,9 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+
+import static io.github.athingx.athing.tunnel.thing.impl.core.util.CheckUtils.check;
+import static java.util.Objects.requireNonNull;
 
 public class ThingTunnelBuilder {
 
@@ -119,6 +122,11 @@ public class ThingTunnelBuilder {
     }
 
     public CompletableFuture<ThingTunnel> build(Thing thing) throws Exception {
+
+        requireNonNull(secret, "secret is required");
+        requireNonNull(remote, "remote is required");
+        check(providers.isEmpty(), "provider is required");
+
         final var config = new TunnelConfig();
         setupAccess(config, thing);
         setupThread(config);
@@ -129,7 +137,7 @@ public class ThingTunnelBuilder {
         final var tunnel = new Tunnel(name, config);
 
         final var group = thing.op().group();
-        group.binding(new BindingForSwitch(thing, tunnel));
+        group.binding(new BindingForDebug(thing, tunnel));
 
         return group
                 .commit()
