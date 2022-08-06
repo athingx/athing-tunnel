@@ -1,17 +1,17 @@
 package io.github.athingx.athing.tunnel.thing.impl;
 
-import io.github.athingx.athing.thing.api.op.OpBinder;
+import io.github.athingx.athing.thing.api.op.OpBind;
 import io.github.athingx.athing.tunnel.thing.ThingTunnel;
 import io.github.athingx.athing.tunnel.thing.impl.core.Tunnel;
 
 public class ThingTunnelImpl implements ThingTunnel {
 
     private final Tunnel tunnel;
-    private final OpBinder binder;
+    private final OpBind bind;
 
-    public ThingTunnelImpl(Tunnel tunnel, OpBinder binder) {
+    public ThingTunnelImpl(Tunnel tunnel, OpBind bind) {
         this.tunnel = tunnel;
-        this.binder = binder;
+        this.bind = bind;
     }
 
     @Override
@@ -31,7 +31,7 @@ public class ThingTunnelImpl implements ThingTunnel {
 
     @Override
     public void close() throws Exception {
-        this.binder.unbind()
+        this.bind.unbind()
                 .thenAccept(none -> tunnel.destroy())
                 .get();
     }

@@ -3,7 +3,7 @@ package io.github.athingx.athing.tunnel.thing.builder;
 import io.github.athingx.athing.thing.api.Thing;
 import io.github.athingx.athing.tunnel.thing.ThingTunnel;
 import io.github.athingx.athing.tunnel.thing.impl.ThingTunnelImpl;
-import io.github.athingx.athing.tunnel.thing.impl.binding.BindingForDebug;
+import io.github.athingx.athing.tunnel.thing.impl.binding.BindForDebug;
 import io.github.athingx.athing.tunnel.thing.impl.core.Tunnel;
 import io.github.athingx.athing.tunnel.thing.impl.core.TunnelConfig;
 
@@ -136,12 +136,12 @@ public class ThingTunnelBuilder {
         final var name = "%s/tunnel".formatted(thing.path());
         final var tunnel = new Tunnel(name, config);
 
-        final var group = thing.op().group();
-        group.binding(new BindingForDebug(thing, tunnel));
+        final var group = thing.op().binding();
+        group.bindFor(new BindForDebug(thing, tunnel));
 
         return group
                 .commit()
-                .thenApply(binder -> new ThingTunnelImpl(tunnel, binder));
+                .thenApply(bind -> new ThingTunnelImpl(tunnel, bind));
     }
 
 }
