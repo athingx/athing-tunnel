@@ -1,8 +1,8 @@
-package io.github.athingx.athing.tunnel.thing.impl.binding;
+package io.github.athingx.athing.tunnel.thing.impl.binder;
 
 import io.github.athingx.athing.thing.api.Thing;
 import io.github.athingx.athing.thing.api.op.OpBind;
-import io.github.athingx.athing.thing.api.op.OpGroupBindFor;
+import io.github.athingx.athing.thing.api.op.OpGroupBinder;
 import io.github.athingx.athing.thing.api.op.OpGroupBinding;
 import io.github.athingx.athing.tunnel.thing.impl.core.Tunnel;
 import io.github.athingx.athing.tunnel.thing.impl.domain.Debug;
@@ -15,13 +15,13 @@ import static io.github.athingx.athing.thing.api.function.ThingFn.mappingJsonFro
 import static io.github.athingx.athing.thing.api.function.ThingFn.mappingJsonToType;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-public class BindForDebug implements OpGroupBindFor<OpBind> {
+public class DebugOpBinder implements OpGroupBinder<OpBind> {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Thing thing;
     private final Tunnel tunnel;
 
-    public BindForDebug(Thing thing, Tunnel tunnel) {
+    public DebugOpBinder(Thing thing, Tunnel tunnel) {
         this.thing = thing;
         this.tunnel = tunnel;
     }
