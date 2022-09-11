@@ -136,10 +136,10 @@ public class ThingTunnelBuilder {
         final var name = "%s/tunnel".formatted(thing.path());
         final var tunnel = new Tunnel(name, config);
 
-        final var group = thing.op().binding();
-        group.bindFor(new DebugOpBinder(thing, tunnel));
+        final var batch = thing.op().binding();
+        new DebugOpBinder(thing, tunnel).bind(batch);
 
-        return group
+        return batch
                 .commit()
                 .thenApply(bind -> new ThingTunnelImpl(tunnel, bind));
     }

@@ -2,8 +2,8 @@ package io.github.athingx.athing.tunnel.thing.impl.binder;
 
 import io.github.athingx.athing.thing.api.Thing;
 import io.github.athingx.athing.thing.api.op.OpBind;
-import io.github.athingx.athing.thing.api.op.OpGroupBinder;
-import io.github.athingx.athing.thing.api.op.OpGroupBinding;
+import io.github.athingx.athing.thing.api.op.OpBindable;
+import io.github.athingx.athing.thing.api.op.OpBinder;
 import io.github.athingx.athing.tunnel.thing.impl.core.Tunnel;
 import io.github.athingx.athing.tunnel.thing.impl.domain.Debug;
 import org.slf4j.Logger;
@@ -15,7 +15,7 @@ import static io.github.athingx.athing.thing.api.function.ThingFn.mappingJsonFro
 import static io.github.athingx.athing.thing.api.function.ThingFn.mappingJsonToType;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-public class DebugOpBinder implements OpGroupBinder<OpBind> {
+public class DebugOpBinder implements OpBinder<OpBind> {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Thing thing;
@@ -27,8 +27,8 @@ public class DebugOpBinder implements OpGroupBinder<OpBind> {
     }
 
     @Override
-    public CompletableFuture<OpBind> bindFor(OpGroupBinding group) {
-        return group.binding("/sys/%s/edge/debug/switch".formatted(thing.path().toURN()))
+    public CompletableFuture<OpBind> bind(OpBindable bindable) {
+        return bindable.binding("/sys/%s/edge/debug/switch".formatted(thing.path().toURN()))
                 .map(mappingJsonFromByte(UTF_8))
                 .map(mappingJsonToType(Debug.class))
                 .bind((topic, debug) -> {
