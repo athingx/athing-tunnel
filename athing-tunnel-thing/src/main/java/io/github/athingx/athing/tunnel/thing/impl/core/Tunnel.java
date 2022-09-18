@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -107,7 +108,7 @@ public class Tunnel {
      * @return TRUE | FALSE
      */
     public boolean isConnected() {
-        return channel.isActive();
+        return Objects.nonNull(channel) && channel.isActive();
     }
 
     /**
