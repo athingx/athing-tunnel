@@ -3,11 +3,15 @@ package io.github.athingx.athing.tunnel.thing.test;
 import io.github.athingx.athing.thing.api.Thing;
 import io.github.athingx.athing.thing.api.ThingPath;
 import io.github.athingx.athing.thing.builder.ThingBuilder;
-import io.github.athingx.athing.thing.builder.mqtt.AliyunMqttClientFactory;
+import io.github.athingx.athing.thing.builder.client.DefaultMqttClientFactory;
+import io.github.athingx.athing.tunnel.thing.TargetEnd;
 import io.github.athingx.athing.tunnel.thing.ThingTunnel;
-import io.github.athingx.athing.tunnel.thing.builder.ThingTunnelBuilder;
+import io.github.athingx.athing.tunnel.thing.ThingTunnelInstaller;
+import io.github.athingx.athing.tunnel.thing.ThingTunnelOption;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+
+import java.util.HashSet;
 
 public class ThingTunnelSupport implements LoadingProperties {
 
@@ -18,15 +22,20 @@ public class ThingTunnelSupport implements LoadingProperties {
     public static void _before() throws Exception {
 
         thing = new ThingBuilder(new ThingPath(PRODUCT_ID, THING_ID))
-                .clientFactory(new AliyunMqttClientFactory()
+                .client(new DefaultMqttClientFactory()
                         .remote(THING_REMOTE)
                         .secret(THING_SECRET))
                 .build();
 
-        thingTunnel = new ThingTunnelBuilder()
-                .secret(THING_SECRET)
-                .provider("ssh://127.0.0.1:22?name=LOCAL_SSH&connectTimeout=30000")
-                .build(thing)
+        final var option = new ThingTunnelOption()
+                .setEnds(new HashSet<>() {{
+                    add(TargetEnd.valueOf("_SSH", "127.0.0.1", 22));
+                }});
+
+        thingTunnel = thing.plugins()
+                .install(new ThingTunnelInstaller()
+                        .option(option)
+                )
                 .get();
 
     }

@@ -1,25 +1,12 @@
 package io.github.athingx.athing.tunnel.thing;
 
+import io.github.athingx.athing.thing.api.plugin.ThingPlugin;
+
 /**
  * 设备隧道
  */
-public interface ThingTunnel extends AutoCloseable {
+public interface ThingTunnel extends ThingPlugin {
 
-    /**
-     * 启用隧道
-     */
-    void enable();
-
-    /**
-     * 禁用隧道
-     */
-    void disable();
-
-    /**
-     * 隧道是否启用
-     *
-     * @return TRUE | FALSE
-     */
-    boolean isEnable();
+    String PLUGIN_ID = "athingx.thing.tunnel";
 
 }

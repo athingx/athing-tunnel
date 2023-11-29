@@ -34,11 +34,6 @@
             <artifactId>athing-thing-api</artifactId>
             <version>${athing.version}</version>
         </dependency>
-        <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-codec-http</artifactId>
-            <version>4.1.79.Final</version>
-        </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
