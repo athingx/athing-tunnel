@@ -7,11 +7,8 @@ import io.github.athingx.athing.thing.builder.client.DefaultMqttClientFactory;
 import io.github.athingx.athing.tunnel.thing.TargetEnd;
 import io.github.athingx.athing.tunnel.thing.ThingTunnel;
 import io.github.athingx.athing.tunnel.thing.ThingTunnelInstaller;
-import io.github.athingx.athing.tunnel.thing.ThingTunnelOption;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-
-import java.util.HashSet;
 
 public class ThingTunnelSupport implements LoadingProperties {
 
@@ -27,14 +24,10 @@ public class ThingTunnelSupport implements LoadingProperties {
                         .secret(THING_SECRET))
                 .build();
 
-        final var option = new ThingTunnelOption()
-                .setEnds(new HashSet<>() {{
-                    add(TargetEnd.valueOf("_SSH", "127.0.0.1", 22));
-                }});
-
         thingTunnel = thing.plugins()
                 .install(new ThingTunnelInstaller()
-                        .option(option)
+                        .executor(thing.executor())
+                        .end(new TargetEnd.SocketEnd("_SSH", "127.0.0.1", 22))
                 )
                 .get();
 

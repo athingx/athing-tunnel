@@ -6,6 +6,7 @@ import io.github.athingx.athing.thing.api.Thing;
 import io.github.athingx.athing.thing.api.op.Decoder;
 import io.github.athingx.athing.thing.api.op.OpBinder;
 import io.github.athingx.athing.thing.api.op.OpBinding;
+import io.github.athingx.athing.tunnel.thing.TargetEnd;
 import io.github.athingx.athing.tunnel.thing.ThingTunnelOption;
 import io.github.athingx.athing.tunnel.thing.impl.client.TunnelClient;
 import io.github.athingx.athing.tunnel.thing.impl.client.protocol.Constants;
@@ -14,8 +15,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 
 import static io.github.athingx.athing.common.util.JsonObjectUtils.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -24,10 +27,14 @@ public class OpBindingForNotify implements OpBinding<OpBinder>, Constants {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ThingTunnelOption option;
+    private final Executor executor;
+    private final Set<TargetEnd> ends;
     private final Map<String, TunnelClient> clientMap = new ConcurrentHashMap<>();
 
-    public OpBindingForNotify(ThingTunnelOption option) {
+    public OpBindingForNotify(Executor executor, ThingTunnelOption option, Set<TargetEnd> ends) {
+        this.executor = executor;
         this.option = option;
+        this.ends = ends;
     }
 
     // 连接操作
@@ -45,9 +52,10 @@ public class OpBindingForNotify implements OpBinding<OpBinder>, Constants {
 
         // 创建隧道客户端
         TunnelClient.newBuilder(tunnelId)
+                .executor(executor)
                 .connectTimeoutMs(option.getHttpConnectTimeoutMs())
                 .timeoutMs(option.getHttpTimeoutMs())
-                .ends(option.getEnds())
+                .ends(ends)
                 .buildAsync(token, remote, new TunnelClient.Handler() {
                     @Override
                     public void onConnected() {
@@ -97,10 +105,11 @@ public class OpBindingForNotify implements OpBinding<OpBinder>, Constants {
     private synchronized void disconnect(Thing thing, String tunnelId, String reason) {
         final var client = clientMap.remove(tunnelId);
         if (null != client) {
-            client.close(reason).exceptionally(ex -> {
-                client.abort();
-                logger.warn("{}/tunnel close failure! tunnel={};", thing.path(), tunnelId, ex);
-                return null;
+            client.close(reason).whenComplete((v, ex) -> {
+                if (null != ex) {
+                    client.abort();
+                    logger.warn("{}/tunnel close failure! tunnel={};", thing.path(), tunnelId, ex);
+                }
             });
         }
     }

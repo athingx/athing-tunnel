@@ -11,8 +11,8 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.net.http.WebSocket;
 import java.nio.ByteBuffer;
+import java.nio.channels.ByteChannel;
 import java.nio.channels.ClosedByInterruptException;
-import java.nio.channels.SocketChannel;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -37,6 +38,7 @@ public class TunnelWebSocketListener implements WebSocket.Listener, Constants {
 
     private final String tunnelId;
     private final Set<TargetEnd> ends;
+    private final Executor executor;
     private final TunnelClient.Handler handler;
 
 
@@ -45,10 +47,11 @@ public class TunnelWebSocketListener implements WebSocket.Listener, Constants {
     private final Map<String, Session> sessionMap = new ConcurrentHashMap<>();
 
 
-    public TunnelWebSocketListener(String tunnelId, Set<TargetEnd> ends, TunnelClient.Handler handler) {
-        this.tunnelId = tunnelId;
+    public TunnelWebSocketListener(Executor executor, String tunnelId, Set<TargetEnd> ends, TunnelClient.Handler handler) {
         this.ends = ends;
         this.handler = handler;
+        this.tunnelId = tunnelId;
+        this.executor = executor;
     }
 
     public void cleanSession() {
@@ -186,38 +189,31 @@ public class TunnelWebSocketListener implements WebSocket.Listener, Constants {
                 );
             }
 
-            try {
+            return end.connectAsync(executor).handle((channel, cause) -> {
 
-                // 创建会话
-                final var session = new Session(sessionId, end, socket).connect();
+                // 会话创建失败
+                if (null != cause) {
+                    logger.warn("tunnel-client://{}/{} session open error!", tunnelId, sessionId, cause);
+                    return reply(socket, frame.header(), CODE_CREATE_SESSION_FAILURE, cause.getMessage());
+                }
+
+                // 会话创建成功
+                final var session = new Session(sessionId, end, socket, channel);
                 sessionMap.put(sessionId, session);
-
-                // 响应会话创建
                 return reply(socket, frame.header(), CODE_CREATE_SESSION_SUCCESS, "success")
                         .thenApply(unused -> {
                             session.start();
-                            logger.info("tunnel-client://{}/{} session opened! service={};",
-                                    tunnelId,
-                                    sessionId,
-                                    frame.header().serviceType()
-                            );
+                            logger.info("tunnel-client://{}/{} session opened! service={};", tunnelId, sessionId, frame.header().serviceType());
                             return unused;
                         })
-                        .exceptionally(cause -> {
-                            if (sessionMap.remove(sessionId) == session) {
+                        .whenComplete((unused, rCause) -> {
+                            if (null != rCause && (sessionMap.remove(sessionId) == session)) {
+                                logger.debug("tunnel-client://{}/{} session close by reply error!", tunnelId, sessionId, rCause);
                                 session.close(false);
                             }
-                            return null;
                         });
 
-            } catch (IOException cause) {
-                logger.warn("tunnel-client://{}/{} session open error!",
-                        tunnelId,
-                        sessionId,
-                        cause
-                );
-                return reply(socket, frame.header(), CODE_CREATE_SESSION_FAILURE, cause.getMessage());
-            }
+            });
 
         }
 
@@ -274,15 +270,15 @@ public class TunnelWebSocketListener implements WebSocket.Listener, Constants {
         private final String sessionId;
         private final TargetEnd end;
         private final WebSocket socket;
-        private final SocketChannel channel;
+        private final ByteChannel channel;
         private final AtomicReference<State> stateRef = new AtomicReference<>(State.INIT);
         private final Thread worker;
 
-        Session(String sessionId, TargetEnd end, WebSocket socket) throws IOException {
+        Session(String sessionId, TargetEnd end, WebSocket socket, ByteChannel channel) {
             this.sessionId = sessionId;
             this.end = end;
             this.socket = socket;
-            this.channel = SocketChannel.open();
+            this.channel = channel;
             this.worker = init();
         }
 
@@ -348,11 +344,6 @@ public class TunnelWebSocketListener implements WebSocket.Listener, Constants {
             }
         }
 
-        Session connect() throws IOException {
-            channel.connect(end.address());
-            return this;
-        }
-
         void close(boolean isNotify) {
             stop();
             IOUtils.closeQuietly(channel);
@@ -366,7 +357,9 @@ public class TunnelWebSocketListener implements WebSocket.Listener, Constants {
                         ),
                         new Response(CODE_CLOSED_SESSION_BY_CLIENT, "closed by client")
                 );
-                socket.sendBinary(encodeFrame(frame), true).join();
+                if(!socket.isOutputClosed()) {
+                    socket.sendBinary(encodeFrame(frame), true).join();
+                }
             }
         }
 

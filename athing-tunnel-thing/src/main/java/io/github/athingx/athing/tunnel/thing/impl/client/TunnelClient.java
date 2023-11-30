@@ -6,9 +6,12 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.time.Duration;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+
+import static java.util.Objects.requireNonNull;
 
 public class TunnelClient {
 
@@ -29,9 +32,10 @@ public class TunnelClient {
     public static Builder newBuilder(String tunnelId) {
         return new Builder() {
 
-            private long timeoutMs = 30000L;
-            private long connectTimeoutMs = 30000L;
-            private Set<TargetEnd> ends = new HashSet<>();
+            private long timeoutMs = TimeUnit.SECONDS.toMillis(30L);
+            private long connectTimeoutMs = TimeUnit.SECONDS.toMillis(30L);
+            private Executor executor;
+            private Set<TargetEnd> ends;
 
             @Override
             public Builder timeoutMs(long timeoutMs) {
@@ -46,6 +50,12 @@ public class TunnelClient {
             }
 
             @Override
+            public Builder executor(Executor executor) {
+                this.executor = executor;
+                return this;
+            }
+
+            @Override
             public Builder ends(Set<TargetEnd> ends) {
                 this.ends = ends;
                 return this;
@@ -53,6 +63,12 @@ public class TunnelClient {
 
             @Override
             public CompletableFuture<TunnelClient> buildAsync(String token, URI remote, Handler handler) {
+
+                requireNonNull(token, "token is required!");
+                requireNonNull(remote, "remote is required!");
+                requireNonNull(handler, "handler is required!");
+                requireNonNull(executor, "executor is required!");
+                requireNonNull(ends, "ends is required!");
 
                 final var client = HttpClient.newBuilder()
                         .version(HttpClient.Version.HTTP_2)
@@ -63,7 +79,7 @@ public class TunnelClient {
                         .header("tunnel-access-token", token)
                         .subprotocols("subprotocol", "aliyun.iot.securetunnel-v1.1")
                         .connectTimeout(Duration.ofMillis(timeoutMs))
-                        .buildAsync(remote, new TunnelWebSocketListener(tunnelId, ends, handler))
+                        .buildAsync(remote, new TunnelWebSocketListener(executor, tunnelId, ends, handler))
                         .thenApply(TunnelClient::new);
             }
         };
@@ -74,6 +90,8 @@ public class TunnelClient {
         Builder timeoutMs(long timeoutMs);
 
         Builder connectTimeoutMs(long timeoutMs);
+
+        Builder executor(Executor executor);
 
         Builder ends(Set<TargetEnd> ends);
 
